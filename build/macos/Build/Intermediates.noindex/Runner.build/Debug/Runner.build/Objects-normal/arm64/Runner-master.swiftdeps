@@ -1,0 +1,8 @@
+version: "Apple Swift version 5.8 (swiftlang-5.8.0.124.2 clang-1403.0.22.11.100)"
+options: "c0a613f097f0bad10920ffba5a8aa1c728837b3d425e3983f18001a95f51ffb0"
+build_start_time: [1686601146, 863793000]
+build_end_time: [1686601152, 977322000]
+inputs:
+  "/Users/nattestad/workspaces/mergetorio/macos/Flutter/GeneratedPluginRegistrant.swift": [1686601115, 812594822]
+  "/Users/nattestad/workspaces/mergetorio/macos/Runner/AppDelegate.swift": [1684361898, 0]
+  "/Users/nattestad/workspaces/mergetorio/macos/Runner/MainFlutterWindow.swift": [1684361898, 0]
