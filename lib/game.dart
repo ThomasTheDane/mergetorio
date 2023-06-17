@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'dart:math';
 
 import 'package:flame/flame.dart';
 import 'package:flutter/material.dart';
@@ -13,16 +14,23 @@ import '../../game.dart';
 
 class MergetorioGame extends FlameGame {
   late Inventory inventory;
+  late Store store;
+  late DetailsModel detailsModel;
   late GameGrid gameGrid;
 
   bool isDragging = false;
   Building? dragTarget;
 
+  late CommandCenter commandCenter;
   List<Mine> mines = [];
   List<Factory> factories = [];
 
-  MergetorioGame(this.inventory) {
+  MergetorioGame(this.inventory, this.detailsModel, this.store) {
     gameGrid = GameGrid();
+    commandCenter = CommandCenter(Vector2(2, 2));
+    add(commandCenter);
+
+    detailsModel.updateBuilding(commandCenter);
   }
 
   @override
@@ -58,9 +66,9 @@ class MergetorioGame extends FlameGame {
   }
 
   setupTesting() {
-    var mine = Mine(Material.ironOre, Vector2(1, 1));
+    var mine = Mine(Recipe.ironOre, Vector2(1, 1));
     add(mine);
-    var mine2 = Mine(Material.ironOre, Vector2(2, 2));
+    var mine2 = Mine(Recipe.ironOre, Vector2(1, 2));
     add(mine2);
     var fac = Factory(Recipe.ironPlate, Vector2(3, 3));
     add(fac);
@@ -104,13 +112,29 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
             }, growable: true),
         growable: true);
   }
+
+  Tile getRandomUnoccupiedTile() {
+    Random random = Random();
+
+    while (true) {
+      //todo: breakout detection
+      int randX = random.nextInt(gridWidth);
+      int randY = random.nextInt(gridHeight);
+      if (tiles[randY][randX].buildingPlacedOn == null) {
+        return tiles[randY][randX];
+      }
+    }
+  }
 }
+
+enum Material { dirt, ironOre, copperOre, ironPlate, copperPlate, coal, steel }
 
 class Inventory extends ChangeNotifier {
   var materials = <Material, double>{};
 
   Inventory() {
     materials[Material.ironOre] = 100;
+    materials[Material.coal] = 100;
   }
 
   addItems(Map<Material, double> additions, {multiplier = 1}) {
@@ -177,7 +201,70 @@ class Inventory extends ChangeNotifier {
   }
 }
 
-enum Material { dirt, ironOre, copperOre, ironPlate, copperPlate }
+class Store extends ChangeNotifier {
+  List<BuildingSpec> availableBuildings = [];
+  late MergetorioGame gameRef;
+
+  Store() {
+    initializeStart();
+  }
+
+  handleBuy(toBuySpec) {
+    // print(gameRef);
+    if (gameRef.inventory.checkIfCanSubtract(toBuySpec.cost)) {
+      gameRef.inventory.subtractItems(toBuySpec.cost);
+      if (toBuySpec.type == BuildingType.mine) {
+        var newMine = Mine(toBuySpec.recipe,
+            gameRef.gameGrid.getRandomUnoccupiedTile().gridPoint);
+        gameRef.add(newMine);
+        gameRef.mines.add(newMine);
+      }
+      if (toBuySpec.type == BuildingType.factory) {
+        var newFac = Factory(toBuySpec.recipe,
+            gameRef.gameGrid.getRandomUnoccupiedTile().gridPoint);
+        gameRef.add(newFac);
+        gameRef.factories.add(newFac);
+      }
+    } else {
+      print("too poor bitch");
+      //
+    }
+  }
+
+  initializeStart() {
+    availableBuildings.addAll([
+      BuildingSpec.ironOreMine,
+      BuildingSpec.ironPlateFactory,
+      BuildingSpec.steelFactory
+    ]);
+  }
+}
+
+enum BuildingSpec {
+  ironOreMine(
+      type: BuildingType.mine,
+      cost: {Material.ironOre: 10},
+      recipe: Recipe.ironOre),
+  ironPlateFactory(
+      type: BuildingType.factory,
+      cost: {Material.ironOre: 20},
+      recipe: Recipe.ironPlate),
+  copperPlateFactory(
+      type: BuildingType.factory,
+      cost: {Material.copperOre: 20},
+      recipe: Recipe.copperPlate),
+  steelFactory(
+      type: BuildingType.factory,
+      cost: {Material.coal: 10},
+      recipe: Recipe.steel);
+
+  const BuildingSpec(
+      {required this.type, required this.cost, required this.recipe});
+
+  final BuildingType type;
+  final Map<Material, double> cost;
+  final Recipe recipe;
+}
 
 // ironPlate: { products: { ironPlate: 1 }, costs: { ironOre: 1 }, duration: 10 },
 //         ironGear: { products: { ironGear: 1 }, costs: { ironPlate: 2 }, duration:  20},
@@ -217,6 +304,7 @@ enum Material { dirt, ironOre, copperOre, ironPlate, copperPlate }
 //         science4: { products: { science4: 1 }, costs: { rocketFuel: 5, purpleCircuit: 2,  }, duration: 200},
 
 enum Recipe {
+  ironOre(cost: {}, products: {Material.ironOre: 1}, duration: 1),
   ironPlate(
       cost: {Material.ironOre: 10},
       products: {Material.ironPlate: 1},
@@ -225,7 +313,10 @@ enum Recipe {
       cost: {Material.copperOre: 10},
       products: {Material.copperPlate: 1},
       duration: 10),
-  ;
+  steel(
+      cost: {Material.ironOre: 10, Material.coal: 1},
+      products: {Material.steel: 1},
+      duration: 20);
 
   const Recipe(
       {required this.cost, required this.products, required this.duration});

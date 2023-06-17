@@ -13,16 +13,20 @@ import 'util/util.dart' as utils;
 
 var inventoryModel = Game.Inventory();
 var detailsModel = DetailsModel();
-final game = Game.MergetorioGame(inventoryModel);
+var storeModel = Game.Store();
+final game = Game.MergetorioGame(inventoryModel, detailsModel, storeModel);
 
 void main() {
+  storeModel.gameRef = game;
+
   runApp(
       // ChangeNotifierProvider(
       // create: (context) => inventoryModel,
 
       MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => inventoryModel),
-    ChangeNotifierProvider(create: (context) => detailsModel)
+    ChangeNotifierProvider(create: (context) => detailsModel),
+    ChangeNotifierProvider(create: (context) => storeModel)
   ], child: const MyApp()));
 }
 
@@ -186,7 +190,140 @@ class DetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MineView();
+    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
+      if (detailsModel.selectedBuilding is CommandCenter) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text("Construction Center",
+                  style: TextStyle(
+                      fontSize: 40,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none)),
+            ),
+            SizedBox(width: 500, height: 180, child: StoreView())
+          ],
+        );
+      }
+      if (detailsModel.selectedBuilding is Mine) {
+        return MineView();
+      }
+
+      if (detailsModel.selectedBuilding is Factory) {
+        return FactoryView();
+      }
+      return Placeholder();
+    });
+  }
+}
+
+class StoreView extends StatelessWidget {
+  const StoreView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(scrollDirection: Axis.horizontal, children: [
+      for (Game.BuildingSpec aSpec in storeModel.availableBuildings)
+        StoreItem(aSpec),
+      // StoreItem(Game.BuildingSpec.copperPlateFactory),
+      // StoreItem(Game.BuildingSpec.ironPlateFactory),
+      // StoreItem(Game.BuildingSpec.ironOreMine),
+      // StoreItem(Game.BuildingSpec.ironOreMine),
+      // StoreItem(Game.BuildingSpec.ironOreMine),
+      // StoreItem(Game.BuildingSpec.ironOreMine)
+    ]);
+  }
+}
+
+//   return Consumer<Game.Store>(builder: (context, storeModel, child) {
+//     return ListView(
+//       shrinkWrap: true,
+//       // scrollDirection: Axis.horizontal,
+//       // children: [StoreItem(Game.BuildingSpec.ironOreMine)],
+//       // children: [ResourceItemView(Game.Material.ironOre)],
+//     );
+
+//     return ListView(
+//         // This next line does the trick.
+//         scrollDirection: Axis.horizontal,
+//         children: [StoreItem(Game.BuildingSpec.ironOreMine)]);
+//   });
+// }
+
+class StoreItem extends StatefulWidget {
+  Game.BuildingSpec _buildingSpec;
+
+  StoreItem(this._buildingSpec, {super.key});
+
+  @override
+  State<StoreItem> createState() => _StoreItemState(_buildingSpec);
+}
+
+class _StoreItemState extends State<StoreItem> {
+  Game.BuildingSpec _buildingSpec;
+
+  _StoreItemState(this._buildingSpec);
+
+  @override
+  Widget build(BuildContext context) {
+    // ${material.toString().split('.').last
+    print(widget._buildingSpec.toString().split('.').last);
+    return GestureDetector(
+        onTap: () {
+          storeModel.handleBuy(_buildingSpec);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            width: 100,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                    padding: const EdgeInsets.only(),
+                    child: SizedBox(
+                        height: 100,
+                        width: 100,
+                        child: Image.asset(
+                            "../assets/images/${widget._buildingSpec.toString().split('.').last}.png"))),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    for (var aCost in widget._buildingSpec.cost.keys)
+                      Row(
+                        children: [
+                          Padding(
+                              padding: const EdgeInsets.only(left: 5),
+                              child: SizedBox(height: 30, width: 30, child: Image.asset(
+                                  //value: _buildingSpec.cost[aCost].toString().split('.').last
+                                  "../assets/images/${aCost.toString().split('.').last}.png"))),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: Text(
+                                widget._buildingSpec.cost[aCost]
+                                    .toString()
+                                    .split('.')
+                                    .last,
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none)),
+                          )
+                        ],
+                      )
+                  ],
+                )
+                // Placeholder()
+              ],
+            ),
+          ),
+        ));
   }
 }
 
@@ -196,20 +333,17 @@ class MineView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
-      String imageURL = "";
+      String imageURL =
+          '../assets/images/${detailsModel.selectedBuilding?.imageName}';
 
-      if (detailsModel.selectedBuilding is Mine) {
-        // print(detailsModel.selectedBuilding.material);
-        imageURL =
-            '../assets/images/${detailsModel.selectedBuilding.material.toString().split('.').last}Mine.png';
-      }
       return LayoutBuilder(builder: (context, constraints) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 10, top: 5),
-              child: Text("Iron Ore Mine",
+              child: Text(
+                  utils.prettyBuildingNames(detailsModel.selectedBuilding),
                   style: TextStyle(
                       fontSize: 40,
                       color: Colors.black,
@@ -233,7 +367,7 @@ class MineView extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(left: 20, top: 10),
                         child: Text(
-                            "Rate: ${detailsModel.selectedBuilding.level}",
+                            "Rate: ${detailsModel.selectedBuilding?.level}",
                             style: TextStyle(
                                 fontSize: 20,
                                 color: Colors.black,
@@ -264,7 +398,7 @@ class MineView extends StatelessWidget {
                         padding:
                             const EdgeInsets.only(left: 20, top: 30, right: 50),
                         child: ElevatedButton(
-                            onPressed: detailsModel.pauseClick,
+                            onPressed: detailsModel.refundClick,
                             child: const Text('Refund')),
                       )
                     ],
@@ -279,22 +413,166 @@ class MineView extends StatelessWidget {
   }
 }
 
+class FactoryView extends StatelessWidget {
+  const FactoryView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
+      String imageURL =
+          '../assets/images/${detailsModel.selectedBuilding?.imageName}';
+
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 10, top: 5),
+          child: Text(utils.prettyBuildingNames(detailsModel.selectedBuilding),
+              style: TextStyle(
+                  fontSize: 40,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.none)),
+        ),
+        Expanded(
+            child: Row(
+          children: [
+            Expanded(
+              flex: 4,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                      height: 100, width: 100, child: Image.asset(imageURL)),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 0, top: 10),
+                    child: Text("Rate: ${detailsModel.selectedBuilding?.level}",
+                        style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 0, top: 10),
+                    child: Text("Total made: 223k",
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none)),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+                flex: 8,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var aFacCost in detailsModel
+                              .selectedBuilding!.recipe.cost.keys)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 20, right: 20),
+
+                                // height: 50,
+                                // width: 50,
+                                child: Image.asset(
+                                    "../assets/images/${aFacCost.toString().split('.').last}.png"))
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset("../assets/images/arrow.png"),
+                          Text(
+                              "${detailsModel.selectedBuilding!.recipe.duration.toString()} s",
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.none))
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var aFacProduct in detailsModel
+                              .selectedBuilding!.recipe.products.keys)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 20, right: 20),
+
+                                // height: 50,
+                                // width: 50,
+                                child: Image.asset(
+                                    "../assets/images/${aFacProduct.toString().split('.').last}.png"))
+                        ],
+                      ),
+                    ),
+                  ],
+                )),
+            Expanded(
+                flex: 3,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          left: 0, top: 0, right: 0, bottom: 10),
+                      child: IconButton(
+                        icon: const Icon(Icons.pause),
+                        tooltip: 'Pause',
+                        onPressed: detailsModel.pauseClick,
+                      ),
+                    ),
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(left: 0, top: 10, right: 0),
+                      child: IconButton(
+                        icon: const Icon(Icons.delete),
+                        tooltip: 'Refund',
+                        onPressed: detailsModel.refundClick,
+                      ),
+                    )
+                  ],
+                )),
+          ],
+        ))
+      ]);
+    });
+  }
+}
+
 class DetailsModel extends ChangeNotifier {
-  late Building selectedBuilding;
+  Building? selectedBuilding;
 
   DetailsModel() {
     // selectedBuilding = game.factories[0];
-    selectedBuilding = Mine(Game.Material.ironOre, Vector2(1, 1));
+    // selectedBuilding = Mine(Game.Recipe.ironOre, Vector2(1, 1));
   }
 
   updateBuilding(newBuilding) {
     selectedBuilding = newBuilding;
-    print("showing new building in details");
+    print("showing new building in details view");
     print(newBuilding);
     notifyListeners();
   }
 
   pauseClick() {
     print('pausing building');
+  }
+
+  refundClick() {
+    print('refund!');
   }
 }

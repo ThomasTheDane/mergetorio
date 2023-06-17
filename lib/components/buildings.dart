@@ -7,14 +7,19 @@ import 'package:mergetorio/game.dart';
 import 'package:flutter/painting.dart';
 import 'tiles.dart';
 
+enum BuildingType { mine, factory }
+
 abstract class Building extends SpriteComponent
-    with HasGameRef<MergetorioGame>, DragCallbacks {
-  @override
-  bool get debugMode => true;
+    with HasGameRef<MergetorioGame>, DragCallbacks, TapCallbacks {
+  // @override
+  // bool get debugMode => true;
+  late Recipe recipe;
+  late String imageName;
 
   late Tile placedOnTile;
   Vector2 gridPoint;
   int level = 1;
+  bool paused = false;
 
   late TextComponent levelText;
 
@@ -22,7 +27,6 @@ abstract class Building extends SpriteComponent
     anchor = Anchor.center;
   }
 
-  get material => null;
   @override
   Future<void> onLoad() async {
     size =
@@ -51,6 +55,12 @@ abstract class Building extends SpriteComponent
   }
 
   @override
+  void onTapUp(TapUpEvent event) {
+    print('tapping building');
+    gameRef.detailsModel.updateBuilding(this);
+  }
+
+  @override
   void onDragStart(DragStartEvent event) {
     print("onDragStart");
     if (!gameRef.isDragging) {
@@ -69,6 +79,7 @@ abstract class Building extends SpriteComponent
   void onDragEnd(DragEndEvent event) {
     snapToGrid();
     gameRef.isDragging = false;
+    print('drag end');
   }
 
   snapToGrid() {
@@ -123,9 +134,9 @@ abstract class Building extends SpriteComponent
 }
 
 class Mine extends Building {
-  Material material;
+  Recipe recipe;
 
-  Mine(this.material, Vector2 gridPoint) : super(gridPoint) {}
+  Mine(this.recipe, Vector2 gridPoint) : super(gridPoint) {}
 
   @override
   Future<void> onLoad() async {
@@ -135,14 +146,16 @@ class Mine extends Building {
   }
 
   _loadSprite() async {
-    sprite =
-        await Sprite.load('${material.toString().split('.').last}Mine.png');
+    // imageName = '${recipe.products.toString()}Mine.png';
+    imageName = recipe.products.toString().split('.').last.split(':').first +
+        "Mine.png";
+    sprite = await Sprite.load(imageName);
     // sprite = await Sprite.load('ironOreMine.png');
   }
 
   productionIncrement(dt) {
-    if (placedOnTile.material == material) {
-      gameRef.inventory.addItem(material, dt, multiplier: level);
+    if (recipe.products.keys.contains(placedOnTile.material)) {
+      gameRef.inventory.addItem(placedOnTile.material, dt, multiplier: level);
     }
   }
 
@@ -156,10 +169,10 @@ class Mine extends Building {
 }
 
 class Factory extends Building {
-  Recipe recipe;
   double timeCrafting = 0;
   bool crafting = false;
   bool stuckOnFull = false;
+  Recipe recipe;
 
   late RectangleComponent progressBar;
   late RectangleComponent progressBarBackground;
@@ -201,8 +214,9 @@ class Factory extends Building {
   }
 
   _loadSprite() async {
-    sprite =
-        await Sprite.load('${recipe.toString().split('.').last}Factory.png');
+    imageName = '${recipe.toString().split('.').last}Factory.png';
+
+    sprite = await Sprite.load(imageName);
     // sprite = await Sprite.load('ironOreMine.png');
   }
 
@@ -258,5 +272,28 @@ class Factory extends Building {
     gameRef.factories.remove(absorbedBuilding);
 
     super.mergeBuilding(absorbedBuilding);
+  }
+}
+
+class CommandCenter extends Building {
+  CommandCenter(Vector2 gridPoint) : super(gridPoint) {}
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    await _loadSprite();
+
+    levelText.text = "";
+    // productionIncrement(100);
+  }
+
+  _loadSprite() async {
+    print("loading command");
+    imageName = 'CommandCenter.png';
+    sprite = await Sprite.load(imageName);
+    priority = 100;
+
+    // sprite = await Sprite.load('ironOreMine.png');
   }
 }
