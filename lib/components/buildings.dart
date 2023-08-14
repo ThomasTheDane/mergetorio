@@ -7,13 +7,13 @@ import 'package:mergetorio/game.dart';
 import 'package:flutter/painting.dart';
 import 'tiles.dart';
 
-enum BuildingType { mine, factory }
+enum BuildingType { special, mine, factory, lab }
 
 abstract class Building extends SpriteComponent
     with HasGameRef<MergetorioGame>, DragCallbacks, TapCallbacks {
   // @override
   // bool get debugMode => true;
-  late Recipe recipe;
+  late BuildingSpec buildingSpec;
   late String imageName;
 
   late Tile placedOnTile;
@@ -23,7 +23,7 @@ abstract class Building extends SpriteComponent
 
   late TextComponent levelText;
 
-  Building(this.gridPoint) {
+  Building(this.buildingSpec, this.gridPoint) {
     anchor = Anchor.center;
   }
 
@@ -134,9 +134,8 @@ abstract class Building extends SpriteComponent
 }
 
 class Mine extends Building {
-  Recipe recipe;
-
-  Mine(this.recipe, Vector2 gridPoint) : super(gridPoint) {}
+  Mine(BuildingSpec buildingSpec, Vector2 gridPoint)
+      : super(buildingSpec, gridPoint) {}
 
   @override
   Future<void> onLoad() async {
@@ -147,15 +146,18 @@ class Mine extends Building {
 
   _loadSprite() async {
     // imageName = '${recipe.products.toString()}Mine.png';
-    imageName = recipe.products.toString().split('.').last.split(':').first +
-        "Mine.png";
+
+    imageName =
+        "${buildingSpec.recipe.products.toString().split('.').last.split(':').first}Mine.png";
     sprite = await Sprite.load(imageName);
     // sprite = await Sprite.load('ironOreMine.png');
   }
 
   productionIncrement(dt) {
-    if (recipe.products.keys.contains(placedOnTile.material)) {
-      gameRef.inventory.addItem(placedOnTile.material, dt, multiplier: level);
+    if (buildingSpec.recipe.products.keys.contains(placedOnTile.material)) {
+      if (!paused) {
+        gameRef.inventory.addItem(placedOnTile.material, dt, multiplier: level);
+      }
     }
   }
 
@@ -172,12 +174,12 @@ class Factory extends Building {
   double timeCrafting = 0;
   bool crafting = false;
   bool stuckOnFull = false;
-  Recipe recipe;
 
   late RectangleComponent progressBar;
   late RectangleComponent progressBarBackground;
 
-  Factory(this.recipe, Vector2 gridPoint) : super(gridPoint) {}
+  Factory(BuildingSpec buildingSpec, Vector2 gridPoint)
+      : super(buildingSpec, gridPoint) {}
 
   @override
   Future<void> onLoad() async {
@@ -214,7 +216,7 @@ class Factory extends Building {
   }
 
   _loadSprite() async {
-    imageName = '${recipe.toString().split('.').last}Factory.png';
+    imageName = '${buildingSpec.name}.png';
 
     sprite = await Sprite.load(imageName);
     // sprite = await Sprite.load('ironOreMine.png');
@@ -230,26 +232,28 @@ class Factory extends Building {
   productionIncrement(dt) {
     // print(timeCrafting);
     if (crafting) {
-      timeCrafting += dt * level;
+      if (!paused) {
+        timeCrafting += dt * level;
+      }
     } else {
       //see if we can start recipe
-      if (gameRef.inventory.checkIfCanSubtract(recipe.cost)) {
+      if (gameRef.inventory.checkIfCanSubtract(buildingSpec.recipe.cost)) {
         //start crafting
-        gameRef.inventory.subtractItems(recipe.cost);
+        gameRef.inventory.subtractItems(buildingSpec.recipe.cost);
         crafting = true;
       }
     }
-    if (timeCrafting >= recipe.duration) {
+    if (timeCrafting >= buildingSpec.recipe.duration) {
       //done crafting
       //check if inventory can accept products
-      if (gameRef.inventory.checkIfCanAdd(recipe.products)) {
-        gameRef.inventory.addItems(recipe.products);
+      if (gameRef.inventory.checkIfCanAdd(buildingSpec.recipe.products)) {
+        gameRef.inventory.addItems(buildingSpec.recipe.products);
         timeCrafting = 0;
         crafting = false;
       }
     }
 
-    updateProgressBar(timeCrafting / recipe.duration);
+    updateProgressBar(timeCrafting / buildingSpec.recipe.duration);
   }
 
   @override
@@ -258,14 +262,16 @@ class Factory extends Building {
     //sum up progress on buildings
     if (absorbedBuilding is Factory) {
       timeCrafting = timeCrafting + absorbedBuilding.timeCrafting;
-      if (timeCrafting > recipe.duration) {
+      if (timeCrafting > buildingSpec.recipe.duration) {
         //add the crafted products
-        gameRef.inventory.addItems(recipe.products);
+        gameRef.inventory.addItems(buildingSpec.recipe.products);
 
         //add the extra time
-        double extraTime = timeCrafting - recipe.duration;
+        double extraTime = timeCrafting - buildingSpec.recipe.duration;
         //With the new crafting speed the time spent should be applied at ratio of newSpeed / oldSpeed
-        timeCrafting = extraTime * ((level + 1) / (level));
+        timeCrafting = extraTime * ((level + 1) / (level) / 2);
+        print(
+            "extra time left over: ${extraTime * ((level + 1) / (level))} / ${buildingSpec.recipe.duration}");
       }
     }
 
@@ -276,7 +282,8 @@ class Factory extends Building {
 }
 
 class CommandCenter extends Building {
-  CommandCenter(Vector2 gridPoint) : super(gridPoint) {}
+  CommandCenter(buildingSpec, Vector2 gridPoint)
+      : super(buildingSpec, gridPoint) {}
 
   @override
   Future<void> onLoad() async {
