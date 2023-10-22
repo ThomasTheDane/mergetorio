@@ -4,12 +4,20 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:mergetorio/game.dart';
 import 'buildings.dart';
+import 'package:hive/hive.dart';
 
+part 'tiles.g.dart';
+
+@HiveType(typeId: 12)
 class Tile extends SpriteComponent
     with HasGameRef<MergetorioGame>, TapCallbacks {
+  @HiveField(0)
   Material material;
+  @HiveField(1)
   Vector2 gridPoint;
+  @HiveField(2)
   double tilePixelSize = 100;
+  @HiveField(3)
   Building? buildingPlacedOn;
 
   Tile(this.material, this.gridPoint) {
@@ -47,7 +55,8 @@ class Tile extends SpriteComponent
 
   _loadSprite() async {
     // todo: replace with ${} syntax
-    sprite = await Sprite.load('${material.toString().split('.').last}.png');
+    sprite =
+        await Sprite.load('${material.toString().split('.').last}Tile.png');
     // switch (material) {
     //   case Material.dirt:
     //     sprite = await Sprite.load('dirt.png');

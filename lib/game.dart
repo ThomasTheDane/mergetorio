@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:html';
 import 'dart:js_interop';
 import 'dart:math';
@@ -8,15 +9,24 @@ import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flame/components.dart';
 import 'package:mergetorio/main.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:hive/hive.dart';
 
 import 'components/buildings.dart';
 import 'components/tiles.dart';
 import '../../game.dart';
 
+part 'game.g.dart';
+
+@HiveType(typeId: 0)
 class MergetorioGame extends FlameGame {
+  @HiveField(0)
   late Inventory inventory;
+  @HiveField(1)
   late Store store;
+  @HiveField(2)
   late DetailsModel detailsModel;
+  @HiveField(3)
   late GameGrid gameGrid;
 
   bool isDragging = false;
@@ -25,6 +35,8 @@ class MergetorioGame extends FlameGame {
   late CommandCenter commandCenter;
   List<Mine> mines = [];
   List<Factory> factories = [];
+
+  String gameSaveId = "1";
 
   MergetorioGame(this.inventory, this.detailsModel, this.store) {
     gameGrid = GameGrid();
@@ -46,6 +58,8 @@ class MergetorioGame extends FlameGame {
     add(camera);
 
     add(gameGrid);
+
+    registerAdapters();
 
     setupTesting();
   }
@@ -95,15 +109,147 @@ class MergetorioGame extends FlameGame {
 
     mines.addAll([mine, mine2]);
     factories.add(lab1);
+    inventory.testingSetup();
+
     // factories.add(fac2);
+    // saveCurrentGame();
   }
+
+  registerAdapters() {
+    Hive.registerAdapter(MergetorioGameAdapter());
+    Hive.registerAdapter(MaterialAdapter());
+    Hive.registerAdapter(InventoryAdapter());
+    Hive.registerAdapter(GameGridAdapter());
+    Hive.registerAdapter(TileAdapter());
+    Hive.registerAdapter(StoreAdapter());
+    Hive.registerAdapter(BuildingSpecAdapter());
+    Hive.registerAdapter(DetailsModelAdapter());
+    Hive.registerAdapter(BuildingTypeAdapter());
+    Hive.registerAdapter(BuildingAdapter());
+    Hive.registerAdapter(CommandCenterAdapter());
+    Hive.registerAdapter(FactoryAdapter());
+    Hive.registerAdapter(MineAdapter());
+  }
+
+  saveCurrentGame() async {
+    var box = await Hive.openBox('game1');
+
+    box.put('inventory', inventory);
+
+    // Hive.close();
+  }
+
+  loadGame() async {
+    var box = await Hive.openBox('game1');
+
+    var retrivedInventory = box.get('inventory');
+    print("retrived: $retrivedInventory");
+    if (retrivedInventory != null) {
+      inventory = box.get('inventory');
+      // print(test);
+
+      // inventory.materials = retrived as Map<Material, double>;
+    }
+  }
+
+  // saveCurrentGame() {
+  //   Map<String, dynamic> savingJson = {};
+
+  //   //Mergetorio game
+  //   ////Game Data
+  //   ////currently selected building in details
+  //   //Inventory
+  //   savingJson["inventory"] = inventory.toJson();
+  //   print(savingJson);
+
+  //   //GameGrid
+  //   ////Gridsize
+  //   ////GridMapOfTiles
+
+  //   //Buildings
+
+  //   //actually save
+  //   print("========= saving Game ==========");
+  //   print(savingJson);
+
+  //   saveGameState(gameSaveId, savingJson);
+  // }
+
+  // Future saveGameState(String gameId, Map<String, dynamic> gameState) async {
+  //   // print("Saving Game state: $gameState in ID: $gameId");
+  //   _localStorage['inventory'] = gameState.toString();
+  //   // _localStorage[gameId] = gameState;
+  // }
+
+  // loadGame(String gameId) async {
+  //   String storedString =
+  //       _convertToJsonStringQuotes(await getGameState(gameId));
+  //   //remove second to last character
+  //   storedString = storedString.substring(0, storedString.length - 2) +
+  //       storedString.substring(storedString.length - 1, storedString.length);
+  //   print("Loading Game State: $storedString");
+
+  //   Map<String, dynamic> storedGame =
+  //       jsonDecode(storedString) as Map<String, dynamic>;
+  //   //update inventory
+  //   print(storedGame["inventory"]["materials"]);
+  //   print(inventory.materials);
+  //   Map<Material, double> storedMaterials =
+  //       storedGame["inventory"]["materials"] as Map<Material, double>;
+  //   // inventory.materials =
+  //   // storedGame["inventory"]["materials"] as Map<Material, double>;
+  // }
+
+  // final Storage _localStorage = window.localStorage;
+
+  // Future<String> getGameState(gameId) async =>
+  //     _localStorage["inventory"] ?? "No Data";
+
+  // Future deleteGameState(String gameId) async {
+  //   _localStorage.remove(gameId);
+  // }
+
+  debugClick() {
+    print("game debug click 1");
+    saveCurrentGame();
+  }
+
+  debugClick2() {
+    print("game debug click 2");
+    loadGame();
+    // loadGame("1");
+  }
+
+  // String _convertToJsonStringQuotes(String jsonString) {
+  //   /// add quotes to json string
+  //   jsonString = jsonString.replaceAll('{', '{"');
+  //   jsonString = jsonString.replaceAll(': ', '": "');
+  //   jsonString = jsonString.replaceAll(', ', '", "');
+  //   jsonString = jsonString.replaceAll('}', '"}');
+
+  //   /// remove quotes on object json string
+  //   jsonString = jsonString.replaceAll('"{"', '{"');
+  //   jsonString = jsonString.replaceAll('"}"', '"}');
+
+  //   /// remove quotes on array json string
+  //   jsonString = jsonString.replaceAll('"[{', '[{');
+  //   jsonString = jsonString.replaceAll('}]"', '}]');
+
+  //   return jsonString;
+  // }
 }
 
+@HiveType(typeId: 6)
 class GameGrid extends Component with HasGameRef<MergetorioGame> {
+  @HiveField(0)
   List<List<Tile>> tiles = [[]];
+  @HiveField(1)
   int gridWidth = 5;
+  @HiveField(2)
   int gridHeight = 5;
+  @HiveField(3)
   double gridPixelSize = 1000;
+  @HiveField(4)
   double tilePixelSize = 200;
 
   GameGrid() {}
@@ -145,13 +291,19 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
   }
 }
 
+@HiveType(typeId: 1)
 class Inventory extends ChangeNotifier {
+  // @HiveField(0)
   late MergetorioGame gameRef;
 
+  @HiveField(0)
   Map<Material, double> materials = <Material, double>{};
+  @HiveField(1)
   Map<Material, double> rates = <Material, double>{};
 
-  Inventory() {
+  Inventory() {}
+
+  testingSetup() {
     materials[Material.ironOre] = 100;
     materials[Material.ironPlate] = 100;
     materials[Material.ironGear] = 100;
@@ -255,11 +407,19 @@ class Inventory extends ChangeNotifier {
   justNotify() {
     notifyListeners();
   }
+
+  Map<String, dynamic> toJson() => {'materials': materials};
 }
 
+@HiveType(typeId: 3)
 class Store extends ChangeNotifier {
+  @HiveField(0)
   List<BuildingSpec> availableBuildings = [];
+
+  // @HiveField(1)
   late MergetorioGame gameRef;
+
+  @HiveField(1)
   Map<BuildingSpec, int> purchaseLevel = {};
 
   Store() {
@@ -324,11 +484,9 @@ class Store extends ChangeNotifier {
   handleTechBuildingBuy(BuildingSpec toBuySpec) {
     //todo pickup it seems when a colum tech item disappears it still trigers that spot with the old spec
     if (gameRef.inventory.checkIfCanSubtract(
-        getCostOfUpgrade(toBuySpec, purchaseLevel[toBuySpec] ?? 0),
-        multiplier: pow(2, purchaseLevel[toBuySpec]! - 1))) {
+        getCostOfUpgrade(toBuySpec, purchaseLevel[toBuySpec] ?? 0))) {
       gameRef.inventory.subtractItems(
-          getCostOfUpgrade(toBuySpec, purchaseLevel[toBuySpec] ?? 0),
-          multiplier: pow(2, purchaseLevel[toBuySpec]! - 1));
+          getCostOfUpgrade(toBuySpec, purchaseLevel[toBuySpec] ?? 0));
       purchaseLevel[toBuySpec] = (purchaseLevel[toBuySpec] ?? 0) + 1;
     } else {
       print("too poor for tech bitch");
@@ -347,56 +505,44 @@ class Store extends ChangeNotifier {
   }
 }
 
-// copperCable: { products: { copperCable: 1 }, costs: { copperPlate: 2 }, duration: 4 },
-//
-// engine: { products: { engine: 1 }, costs: { ironPlate: 4, ironGear: 2}, duration: 8 },
-// greenCircuit: { products: { greenCircuit: 1 }, costs: { copperPlate: 2, copperCable: 1 }, duration: 5 },
-
-// oilProcessing1: { products: { petroleum: 1 }, costs: { oil: 5 }, duration: 5 },
-
-// steel: { products: { steel: 1 }, costs: { ironPlate:  2, coal: 4}, duration: 5 },
-// plastic: { products: { plastic: 1 }, costs: { petroleum:  2, coal: 2}, duration: 5 },
-// redCircuit: { products: { redCircuit: 1 }, costs: { greenCircuit:  5, plastic: 2}, duration: 5 },
-
-// oilProcessing2: { products: { petroleum: 1, lightOil: 1, heavyOil: 2 }, costs: { oil: 10 }, duration: 6 },
-// heavyOilBreakdown: { products: { petroleum: 2, lightOil: 4 }, costs: { heavyOil: 3 }, duration: 3 },
-// lightOilBreakdown: { products: { petroleum: 6 }, costs: { lightOil: 4 }, duration: 3 },
-
-// solidFuel1: { products: { solidFuel: 1 }, costs: { petroleum: 10 }, duration: 4 },
-// solidFuel2: { products: { solidFuel: 1 }, costs: { lightOil: 5 }, duration: 4 },
-// solidFuel3: { products: { solidFuel: 1 }, costs: { heavyOil: 3 }, duration: 4 },
-// rocketFuel: { products: { solidFuel: 1 }, costs: { lightOil: 4, solidFuel: 10 }, duration: 6 },
-
-// purpleCircuit: { products: { purpleCircuit: 1 }, costs: { redCircuit: 2, greenCircuit: 10 }, duration: 10 },
-// lowDensityStructure: { products: { lowDensityStructure: 1 }, costs: { steel: 5, plastic: 10, copperPlate: 20 }, duration: 10 },
-
-// rocketPart: { products: { rocketPart: 1 }, costs: { rocketFuel: 1, lowDensityStructure: 1,  purpleCircuit: 1}, duration: 20 },
-
-// science1: { products: { science1: 1 }, costs: { ironGear: 2, ironPlate: 5 }, duration: 5},
-// science2: { products: { science2: 1 }, costs: { engine: 2, greenCircuit: 1 }, duration: 10},
-// science3: { products: { science3: 1 }, costs: { steel: 5, redCircuit: 2 }, duration: 20},
-// science4: { products: { science4: 1 }, costs: { rocketFuel: 5, purpleCircuit: 2,  }, duration: 20},
-
+@HiveType(typeId: 2)
 enum Material {
+  @HiveField(0)
   dirt,
+  @HiveField(1)
   ironOre,
+  @HiveField(2)
   ironPlate,
+  @HiveField(3)
   ironGear,
+  @HiveField(4)
   science1,
 
+  @HiveField(5)
   engine,
+  @HiveField(6)
   copperOre,
+  @HiveField(7)
   copperPlate,
+  @HiveField(8)
   copperCable,
+  @HiveField(9)
   greenCircuit,
+  @HiveField(10)
   science2,
 
+  @HiveField(11)
   oil,
+  @HiveField(12)
   petroleum,
+  @HiveField(13)
   lightOil,
+  @HiveField(14)
   heavyOil,
 
+  @HiveField(15)
   coal,
+  @HiveField(16)
   steel
 }
 
@@ -433,37 +579,45 @@ enum Recipe {
   final double duration;
 }
 
+@HiveType(typeId: 4)
 enum BuildingSpec {
+  @HiveField(0)
   command(
       type: BuildingType.special,
       cost: {},
       recipe: Recipe.empty,
       researchCost: {}),
+  @HiveField(1)
   ironOreMine(
       type: BuildingType.mine,
       cost: {Material.ironOre: 10},
       recipe: Recipe.ironOre,
       researchCost: {Material.science1: 10}),
+  @HiveField(2)
   ironPlateFactory(
       type: BuildingType.factory,
       cost: {Material.ironOre: 20},
       recipe: Recipe.ironPlate,
       researchCost: {Material.science1: 15}),
+  @HiveField(3)
   ironGearFactory(
       type: BuildingType.factory,
       cost: {Material.ironPlate: 10},
       recipe: Recipe.ironGear,
       researchCost: {Material.science1: 20}),
+  @HiveField(4)
   science1Lab(
       type: BuildingType.lab,
       cost: {Material.ironGear: 10},
       recipe: Recipe.science1,
       researchCost: {Material.science1: 40}),
+  @HiveField(5)
   copperPlateFactory(
       type: BuildingType.factory,
       cost: {Material.copperOre: 20},
       recipe: Recipe.copperPlate,
       researchCost: {Material.science1: 50}),
+  @HiveField(6)
   steelPlateFactory(
       type: BuildingType.factory,
       cost: {Material.coal: 10},
@@ -529,3 +683,53 @@ enum BuildingSpec {
 // enum TechType { buildingUnlock, buildingUpgrade, upgrade }
 
 enum TechUpgrade { expand1, expand2, clickHarder }
+
+@HiveType(typeId: 5)
+class DetailsModel extends ChangeNotifier {
+  @HiveField(0)
+  Building? selectedBuilding;
+
+  DetailsModel() {
+    // selectedBuilding = game.factories[0];
+    // selectedBuilding = Mine(Game.Recipe.ironOre, Vector2(1, 1));
+  }
+
+  updateBuilding(newBuilding) {
+    selectedBuilding = newBuilding;
+    print("showing new building in details view");
+    print(newBuilding);
+    notifyListeners();
+  }
+
+  pauseClick() {
+    if (selectedBuilding?.paused ?? false) {
+      selectedBuilding?.paused = false;
+      print('playing building');
+    } else {
+      print('pausing building');
+      selectedBuilding?.paused = true;
+    }
+    notifyListeners();
+  }
+
+  refundClick() {
+    print('refund!');
+    inventoryModel.addItems(selectedBuilding!.buildingSpec.cost,
+        multiplier: pow(
+            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
+    inventoryModel.addItems(selectedBuilding!.buildingSpec.recipe.cost,
+        multiplier: pow(
+            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
+    selectedBuilding?.placedOnTile.buildingPlacedOn = null;
+    game.remove(selectedBuilding!);
+
+    if (selectedBuilding is Factory) {
+      game.factories.remove(selectedBuilding);
+    }
+    if (selectedBuilding is Mine) {
+      game.mines.remove(selectedBuilding);
+    }
+
+    // todo : alert if refund will hit storage limit
+  }
+}

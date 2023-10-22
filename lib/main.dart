@@ -12,7 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'util/util.dart' as utils;
 
 var inventoryModel = Game.Inventory();
-var detailsModel = DetailsModel();
+var detailsModel = Game.DetailsModel();
 var storeModel = Game.Store();
 // var researchModel = Game.Research();
 final game = Game.MergetorioGame(inventoryModel, detailsModel, storeModel);
@@ -47,11 +47,6 @@ class MyApp extends StatelessWidget {
               bodySmall: TextStyle(fontSize: 13),
               bodyMedium: TextStyle(fontSize: 20),
               bodyLarge: TextStyle(fontSize: 25, fontWeight: FontWeight.bold))),
-      // darkTheme: ThemeData(
-      //   colorScheme: utils.darkColorScheme,
-      //   textTheme: GoogleFonts.audiowideTextTheme(ThemeData.dark().textTheme),
-      //   useMaterial3: true,
-      // ),
       home: GamePage(),
     );
   }
@@ -176,15 +171,29 @@ class DetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
+    return Consumer<Game.DetailsModel>(builder: (context, detailsModel, child) {
       if (detailsModel.selectedBuilding is CommandCenter) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text("Construction Center",
-                  style: Theme.of(context).textTheme.displayMedium),
+            Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text("Construction Center",
+                      style: Theme.of(context).textTheme.displayMedium),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bug_report),
+                  tooltip: 'Debug Test',
+                  onPressed: game.debugClick,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bungalow_outlined),
+                  tooltip: 'Debug Test',
+                  onPressed: game.debugClick2,
+                )
+              ],
             ),
             SizedBox(width: 500, height: 180, child: StoreView())
           ],
@@ -257,13 +266,19 @@ class _StoreItemState extends State<StoreItem> {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                    padding: const EdgeInsets.only(),
-                    child: SizedBox(
-                        height: 100,
-                        width: 100,
-                        child: Image.asset(
-                            "../assets/images/${widget._buildingSpec.toString().split('.').last}.png"))),
+                Stack(children: [
+                  Padding(
+                      padding: const EdgeInsets.only(),
+                      child: SizedBox(
+                          height: 100,
+                          width: 100,
+                          child: Image.asset(
+                              "../assets/images/${widget._buildingSpec.toString().split('.').last}.png"))),
+                  HighlightedText(
+                      ((storeModel.purchaseLevel[_buildingSpec] ?? 0) > 0
+                          ? storeModel.purchaseLevel[_buildingSpec].toString()
+                          : ""))
+                ]),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -307,7 +322,7 @@ class MineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
+    return Consumer<Game.DetailsModel>(builder: (context, detailsModel, child) {
       String imageURL =
           '../assets/images/${detailsModel.selectedBuilding?.imageName}';
 
@@ -383,7 +398,7 @@ class FactoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
+    return Consumer<Game.DetailsModel>(builder: (context, detailsModel, child) {
       String imageURL =
           '../assets/images/${detailsModel.selectedBuilding?.imageName}';
 
@@ -430,14 +445,21 @@ class FactoryView extends StatelessWidget {
                           children: [
                             for (var aFacCost in detailsModel.selectedBuilding!
                                 .buildingSpec.recipe.cost.keys)
-                              Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 20, right: 20),
+                              Stack(
+                                children: [
+                                  Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 20, right: 20),
 
-                                  // height: 50,
-                                  // width: 50,
-                                  child: Image.asset(
-                                      "../assets/images/${aFacCost.toString().split('.').last}.png"))
+                                      // height: 50,
+                                      // width: 50,
+                                      child: Image.asset(
+                                          "../assets/images/${aFacCost.toString().split('.').last}.png")),
+                                  HighlightedText(detailsModel.selectedBuilding!
+                                      .buildingSpec.recipe.cost[aFacCost]
+                                      .toString())
+                                ],
+                              )
                           ],
                         ),
                       ),
@@ -449,11 +471,7 @@ class FactoryView extends StatelessWidget {
                             Image.asset("../assets/images/arrow.png"),
                             Text(
                                 "${detailsModel.selectedBuilding!.buildingSpec.recipe.duration.toString()} s",
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.none))
+                                style: Theme.of(context).textTheme.bodySmall)
                           ],
                         ),
                       ),
@@ -515,54 +533,6 @@ class FactoryView extends StatelessWidget {
         ]),
       );
     });
-  }
-}
-
-class DetailsModel extends ChangeNotifier {
-  Building? selectedBuilding;
-
-  DetailsModel() {
-    // selectedBuilding = game.factories[0];
-    // selectedBuilding = Mine(Game.Recipe.ironOre, Vector2(1, 1));
-  }
-
-  updateBuilding(newBuilding) {
-    selectedBuilding = newBuilding;
-    print("showing new building in details view");
-    print(newBuilding);
-    notifyListeners();
-  }
-
-  pauseClick() {
-    if (selectedBuilding?.paused ?? false) {
-      selectedBuilding?.paused = false;
-      print('playing building');
-    } else {
-      print('pausing building');
-      selectedBuilding?.paused = true;
-    }
-    notifyListeners();
-  }
-
-  refundClick() {
-    print('refund!');
-    inventoryModel.addItems(selectedBuilding!.buildingSpec.cost,
-        multiplier: pow(
-            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
-    inventoryModel.addItems(selectedBuilding!.buildingSpec.recipe.cost,
-        multiplier: pow(
-            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
-    selectedBuilding?.placedOnTile.buildingPlacedOn = null;
-    game.remove(selectedBuilding!);
-
-    if (selectedBuilding is Factory) {
-      game.factories.remove(selectedBuilding);
-    }
-    if (selectedBuilding is Mine) {
-      game.mines.remove(selectedBuilding);
-    }
-
-    // todo : alert if refund will hit storage limit
   }
 }
 
@@ -662,6 +632,9 @@ class _ResearchItemState extends State<ResearchItem> {
     print(widget._buildingSpec.toString().split('.').last);
     Map<Game.Material, double> costs = storeModel.getCostOfUpgrade(
         _buildingSpec, storeModel.purchaseLevel[_buildingSpec] ?? 1);
+    String overlayIcon = (storeModel.purchaseLevel[_buildingSpec] ?? 0) == 0
+        ? "unlock.png"
+        : "upgrade.png";
 
     return GestureDetector(
         onTap: () {
@@ -687,11 +660,26 @@ class _ResearchItemState extends State<ResearchItem> {
                     ),
                   ),
                 ),
-                Padding(
-                    padding: const EdgeInsets.only(),
-                    child: SizedBox(height: 80, width: 80, child: Image.asset(
+                Center(
+                  child: Stack(children: [
+                    SizedBox(height: 80, width: 80, child: Image.asset(
                         //todo make these show upgrade overlay with level update or unlock symbol based on level
-                        "../assets/images/${widget._buildingSpec.toString().split('.').last}.png"))),
+                        "../assets/images/${widget._buildingSpec.toString().split('.').last}.png")),
+                    Row(
+                      children: [
+                        SizedBox(height: 40, width: 40, child: Image.asset(
+                            //todo make these show upgrade overlay with level update or unlock symbol based on level
+                            "../assets/images/$overlayIcon")),
+                        HighlightedText(
+                            ((storeModel.purchaseLevel[_buildingSpec] ?? 0) > 0
+                                ? (storeModel.purchaseLevel[_buildingSpec]! + 1)
+                                    .toString()
+                                : ""))
+                        // Text("2", style: Theme.of(context).textTheme.bodyLarge),
+                      ],
+                    ),
+                  ]),
+                ),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -708,11 +696,7 @@ class _ResearchItemState extends State<ResearchItem> {
                             padding: const EdgeInsets.only(left: 15),
                             child: Text(
                                 (costs[aCost] ?? 0).toString().split('.').last,
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.none)),
+                                style: Theme.of(context).textTheme.bodySmall),
                           )
                         ],
                       )
@@ -726,5 +710,40 @@ class _ResearchItemState extends State<ResearchItem> {
   }
 }
 
+class HighlightedText extends StatelessWidget {
+  String textToShow = "";
+  HighlightedText(this.textToShow, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        // Stroked text as border.
+        Text(
+          textToShow,
+          style: TextStyle(
+            fontSize: 20,
+            decoration: TextDecoration.none,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 6
+              ..color = Colors.blue,
+          ),
+        ),
+        // Solid text as fill.
+        Text(
+          textToShow,
+          style: TextStyle(
+            fontSize: 20,
+            decoration: TextDecoration.none,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+}
 //todo add numbers to factory render 
+//todo update the details view when a merge happens to show the new rate 
 //todo make a warning when construction of building through research cost will exceed storage 
+//todo progress bar ends a little too early 

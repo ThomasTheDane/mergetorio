@@ -6,19 +6,39 @@ import 'package:flame/palette.dart';
 import 'package:mergetorio/game.dart';
 import 'package:flutter/painting.dart';
 import 'tiles.dart';
+import 'package:hive/hive.dart';
 
-enum BuildingType { special, mine, factory, lab }
+part 'buildings.g.dart';
 
-abstract class Building extends SpriteComponent
+@HiveType(typeId: 7)
+enum BuildingType {
+  @HiveField(0)
+  special,
+  @HiveField(1)
+  mine,
+  @HiveField(2)
+  factory,
+  @HiveField(3)
+  lab
+}
+
+@HiveType(typeId: 8)
+class Building extends SpriteComponent
     with HasGameRef<MergetorioGame>, DragCallbacks, TapCallbacks {
   // @override
   // bool get debugMode => true;
+  @HiveField(0)
   late BuildingSpec buildingSpec;
+  @HiveField(1)
   late String imageName;
 
+  @HiveField(2)
   late Tile placedOnTile;
-  Vector2 gridPoint;
+  @HiveField(3)
+  late Vector2 gridPoint;
+  @HiveField(4)
   int level = 1;
+  @HiveField(5)
   bool paused = false;
 
   late TextComponent levelText;
@@ -26,6 +46,14 @@ abstract class Building extends SpriteComponent
   Building(this.buildingSpec, this.gridPoint) {
     anchor = Anchor.center;
   }
+
+  Building.fromJson(Map<String, dynamic> json) {
+    buildingSpec = json['buildingSpec'];
+    gridPoint = json['gridPoint]'] ?? Vector2(0, 0);
+  }
+
+  Map<String, dynamic> toJson() =>
+      {'buildingSpec': buildingSpec, 'gridPoint': gridPoint};
 
   @override
   Future<void> onLoad() async {
@@ -133,9 +161,20 @@ abstract class Building extends SpriteComponent
   }
 }
 
+@HiveType(typeId: 9)
 class Mine extends Building {
   Mine(BuildingSpec buildingSpec, Vector2 gridPoint)
       : super(buildingSpec, gridPoint) {}
+
+//   Mine.fromJson(Map<String, dynamic> json{
+//     super(buildingSpec, gridPoint);
+// buildingSpec = json['buildingSpec'];
+// gridPoint = json['gridPoint]'];
+//   }
+
+//   // @override
+//   // Map<String, dynamic> toJson() =>
+//   //     {'buildingSpec': buildingSpec, 'gridPoint': gridPoint};
 
   @override
   Future<void> onLoad() async {
@@ -170,12 +209,18 @@ class Mine extends Building {
   }
 }
 
+@HiveType(typeId: 10)
 class Factory extends Building {
+  @HiveField(6)
   double timeCrafting = 0;
+  @HiveField(7)
   bool crafting = false;
+  @HiveField(8)
   bool stuckOnFull = false;
 
+  @HiveField(9)
   late RectangleComponent progressBar;
+  @HiveField(10)
   late RectangleComponent progressBarBackground;
 
   Factory(BuildingSpec buildingSpec, Vector2 gridPoint)
@@ -276,11 +321,11 @@ class Factory extends Building {
     }
 
     gameRef.factories.remove(absorbedBuilding);
-
     super.mergeBuilding(absorbedBuilding);
   }
 }
 
+@HiveType(typeId: 11)
 class CommandCenter extends Building {
   CommandCenter(buildingSpec, Vector2 gridPoint)
       : super(buildingSpec, gridPoint) {}
