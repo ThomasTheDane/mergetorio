@@ -6,39 +6,19 @@ import 'package:flame/palette.dart';
 import 'package:mergetorio/game.dart';
 import 'package:flutter/painting.dart';
 import 'tiles.dart';
-import 'package:hive/hive.dart';
+import '../util/util.dart';
+import '../util/enums.dart';
 
-part 'buildings.g.dart';
-
-@HiveType(typeId: 7)
-enum BuildingType {
-  @HiveField(0)
-  special,
-  @HiveField(1)
-  mine,
-  @HiveField(2)
-  factory,
-  @HiveField(3)
-  lab
-}
-
-@HiveType(typeId: 8)
 class Building extends SpriteComponent
     with HasGameRef<MergetorioGame>, DragCallbacks, TapCallbacks {
   // @override
   // bool get debugMode => true;
-  @HiveField(0)
   late BuildingSpec buildingSpec;
-  @HiveField(1)
   late String imageName;
 
-  @HiveField(2)
   late Tile placedOnTile;
-  @HiveField(3)
   late Vector2 gridPoint;
-  @HiveField(4)
   int level = 1;
-  @HiveField(5)
   bool paused = false;
 
   late TextComponent levelText;
@@ -48,12 +28,20 @@ class Building extends SpriteComponent
   }
 
   Building.fromJson(Map<String, dynamic> json) {
-    buildingSpec = json['buildingSpec'];
-    gridPoint = json['gridPoint]'] ?? Vector2(0, 0);
+    anchor = Anchor.center;
+
+    buildingSpec = BuildingSpec.values.byName(json["buildingSpec"]);
+    gridPoint = vec2FromJson(json["gridPoint"]);
+    level = int.parse(json["level"]);
+    paused = bool.parse(json["paused"]);
   }
 
-  Map<String, dynamic> toJson() =>
-      {'buildingSpec': buildingSpec, 'gridPoint': gridPoint};
+  Map<String, dynamic> toJson() => {
+        '"buildingSpec"': '"${buildingSpec.toString().split(".").last}"',
+        '"gridPoint"': '"${gridPoint.toString()}"',
+        '"level"': '"$level"',
+        '"paused"': '"$paused"'
+      };
 
   @override
   Future<void> onLoad() async {
@@ -110,11 +98,37 @@ class Building extends SpriteComponent
     print('drag end');
   }
 
+  moveBuildingToGridpoint(gridPoint) {
+    var toBePlacedOnTile = gameRef.gameGrid.tiles[gridPoint.y][gridPoint.x];
+
+    placedOnTile.buildingPlacedOn = null;
+    placedOnTile = toBePlacedOnTile;
+    placedOnTile.buildingPlacedOn = this;
+    position = placedOnTile.center;
+    // position = Vector2(
+    //     (gridPoint.x * gameRef.gameGrid.tilePixelSize) +
+    //         (gameRef.gameGrid.tilePixelSize / 2),
+    //     (gridPoint.y * gameRef.gameGrid.tilePixelSize) +
+    //         (gameRef.gameGrid.tilePixelSize / 2));
+  }
+
+  destroy() {
+    placedOnTile.buildingPlacedOn = null;
+    gameRef.remove(this);
+  }
+
+  resizeAndLayout() {
+    size =
+        Vector2(gameRef.gameGrid.tilePixelSize, gameRef.gameGrid.tilePixelSize);
+    position = placedOnTile.center;
+  }
+
   snapToGrid() {
     var toBePlacedOnTile = gameRef.gameGrid
             .tiles[(position.y / gameRef.gameGrid.tilePixelSize).floor()]
         [(position.x / gameRef.gameGrid.tilePixelSize).floor()];
 
+    //if same tile it came from, abort and snap back
     if (identical(toBePlacedOnTile, placedOnTile)) {
       position = placedOnTile.center;
 
@@ -123,7 +137,7 @@ class Building extends SpriteComponent
 
     //check if to be placed on tile already has building
     if (toBePlacedOnTile.buildingPlacedOn == null) {
-      //in not then moving is happening so set previous tile building to null
+      //if not then moving is happening so set previous tile building to null
       placedOnTile.buildingPlacedOn = null;
       placedOnTile = toBePlacedOnTile;
       placedOnTile.buildingPlacedOn = this;
@@ -137,6 +151,8 @@ class Building extends SpriteComponent
           placedOnTile.buildingPlacedOn = null;
           placedOnTile = toBePlacedOnTile;
 
+          //todo I think I need to refund one recipe worth since while the timeCrafting should add up, since I don't give 2x the output you end up loosing resources when you merge
+
           mergeBuilding(toBePlacedOnTile.buildingPlacedOn);
           placedOnTile.buildingPlacedOn = this;
         }
@@ -145,6 +161,9 @@ class Building extends SpriteComponent
 
     // print(placedOnTile.toString());
     position = placedOnTile.center;
+    gridPoint = Vector2(
+        (position.x / gameRef.gameGrid.tilePixelSize).floor() as double,
+        (position.y / gameRef.gameGrid.tilePixelSize).floor() as double);
   }
 
   mergeBuilding(Building? absorbedBuilding) {
@@ -161,20 +180,15 @@ class Building extends SpriteComponent
   }
 }
 
-@HiveType(typeId: 9)
 class Mine extends Building {
   Mine(BuildingSpec buildingSpec, Vector2 gridPoint)
       : super(buildingSpec, gridPoint) {}
 
-//   Mine.fromJson(Map<String, dynamic> json{
-//     super(buildingSpec, gridPoint);
-// buildingSpec = json['buildingSpec'];
-// gridPoint = json['gridPoint]'];
-//   }
+  Mine.fromJson(Map<String, dynamic> json) : super.fromJson(json) {
+    // print("making mine from json with spec $buildingSpec at $gridPoint");
+  }
 
-//   // @override
-//   // Map<String, dynamic> toJson() =>
-//   //     {'buildingSpec': buildingSpec, 'gridPoint': gridPoint};
+  Map<String, dynamic> toJson() => super.toJson();
 
   @override
   Future<void> onLoad() async {
@@ -209,22 +223,31 @@ class Mine extends Building {
   }
 }
 
-@HiveType(typeId: 10)
 class Factory extends Building {
-  @HiveField(6)
   double timeCrafting = 0;
-  @HiveField(7)
   bool crafting = false;
-  @HiveField(8)
   bool stuckOnFull = false;
 
-  @HiveField(9)
   late RectangleComponent progressBar;
-  @HiveField(10)
   late RectangleComponent progressBarBackground;
 
   Factory(BuildingSpec buildingSpec, Vector2 gridPoint)
       : super(buildingSpec, gridPoint) {}
+
+  Factory.fromJson(Map<String, dynamic> json) : super.fromJson(json) {
+    print("making factory from json with spec $buildingSpec at $gridPoint");
+    timeCrafting = double.parse(json["timeCrafting"]);
+    crafting = bool.parse(json["crafting"]);
+    stuckOnFull = bool.parse(json["stuckOnFull"]);
+  }
+
+  Map<String, dynamic> toJson() => {}
+    ..addAll(super.toJson())
+    ..addAll({
+      '"timeCrafting"': '"$timeCrafting"',
+      '"crafting"': '"$crafting"',
+      '"stuckOnFull"': '"$stuckOnFull"',
+    });
 
   @override
   Future<void> onLoad() async {
@@ -265,6 +288,28 @@ class Factory extends Building {
 
     sprite = await Sprite.load(imageName);
     // sprite = await Sprite.load('ironOreMine.png');
+  }
+
+  @override
+  resizeAndLayout() {
+    super.resizeAndLayout();
+
+    progressBarBackground.position = Vector2(
+      0,
+      gameRef.gameGrid.tilePixelSize - (gameRef.gameGrid.tilePixelSize / 10),
+    );
+    progressBarBackground.size = Vector2(
+        gameRef.gameGrid.tilePixelSize, gameRef.gameGrid.tilePixelSize / 10);
+
+    progressBar.position = Vector2(
+        gameRef.gameGrid.tilePixelSize / 100,
+        gameRef.gameGrid.tilePixelSize -
+            (gameRef.gameGrid.tilePixelSize / 10) +
+            (gameRef.gameGrid.tilePixelSize / 100));
+    progressBar.size = Vector2(
+        gameRef.gameGrid.tilePixelSize - (gameRef.gameGrid.tilePixelSize / 50),
+        (gameRef.gameGrid.tilePixelSize / 10) -
+            (gameRef.gameGrid.tilePixelSize / 50));
   }
 
   updateProgressBar(factor) {
@@ -325,10 +370,13 @@ class Factory extends Building {
   }
 }
 
-@HiveType(typeId: 11)
 class CommandCenter extends Building {
   CommandCenter(buildingSpec, Vector2 gridPoint)
       : super(buildingSpec, gridPoint) {}
+
+  Map<String, dynamic> toJson() => super.toJson();
+
+  CommandCenter.fromJson(Map<String, dynamic> json) : super.fromJson(json) {}
 
   @override
   Future<void> onLoad() async {

@@ -4,15 +4,22 @@
 
 import 'dart:js_interop';
 
+import 'package:flame/components.dart';
+
 import '../game.dart';
 
 export 'color_schemes.dart';
 export 'num_utils.dart';
 import '../components/buildings.dart';
+import 'enums.dart';
 
+//todo pickup see if these can return negative low numbers
 prettyFormat(double? n) {
   n ??= 0;
-  if (n < .000000001) {
+  if (n == 0) {
+    return "0";
+  }
+  if (n > 0 && n < .000000001) {
     return "0";
   }
   if (n < 0 && n > -1) {
@@ -75,4 +82,22 @@ String camelToSentence(String text) {
   var result = text.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), r" ");
   var finalResult = result[0].toUpperCase() + result.substring(1);
   return finalResult;
+}
+
+String prettyTechUpgradesNames(TechUpgrade? anUpgrade) {
+  return camelToSentence(anUpgrade.toString().split(".").last);
+  // return "pretty not found";
+}
+
+Vector2 vec2FromJson(json) {
+  return Vector2(
+      double.parse(json
+          .toString()
+          .split(",")[0]
+          .substring(1, json.toString().split(",")[0].length)),
+      double.parse(json
+          .toString()
+          .split(",")
+          .last
+          .substring(0, json.toString().split(",")[1].length - 1)));
 }

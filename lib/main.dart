@@ -3,19 +3,22 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'components/buildings.dart';
-import 'game.dart' as Game;
 import 'package:provider/provider.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'game.dart';
+import 'components/inventory.dart';
+import 'components/store.dart';
 import 'util/util.dart' as utils;
+import 'util/enums.dart' as enums;
 
-var inventoryModel = Game.Inventory();
-var detailsModel = Game.DetailsModel();
-var storeModel = Game.Store();
+var inventoryModel = Inventory();
+var detailsModel = DetailsModel();
+var storeModel = Store();
 // var researchModel = Game.Research();
-final game = Game.MergetorioGame(inventoryModel, detailsModel, storeModel);
+final game = MergetorioGame(inventoryModel, detailsModel, storeModel);
 
 void main() {
   inventoryModel.gameRef = game;
@@ -89,7 +92,7 @@ class InventoryView extends StatelessWidget {
   Widget build(BuildContext context) {
     // List<ResourceItemView> materialToRender;
 
-    return Consumer<Game.Inventory>(
+    return Consumer<Inventory>(
       builder: (context, inventory, child) {
         // print(inventory.materials[Game.Material.ironOre]);
         return ListView(
@@ -106,7 +109,7 @@ class InventoryView extends StatelessWidget {
 }
 
 class ResourceItemView extends StatefulWidget {
-  final Game.Material material;
+  final enums.Material material;
 
   ResourceItemView(this.material, {super.key});
 
@@ -115,7 +118,7 @@ class ResourceItemView extends StatefulWidget {
 }
 
 class _ResourceItemViewState extends State<ResourceItemView> {
-  Game.Material material;
+  enums.Material material;
 
   _ResourceItemViewState(this.material);
 
@@ -171,7 +174,7 @@ class DetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Game.DetailsModel>(builder: (context, detailsModel, child) {
+    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
       if (detailsModel.selectedBuilding is CommandCenter) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,11 +208,11 @@ class DetailView extends StatelessWidget {
 
       if (detailsModel.selectedBuilding is Factory) {
         if (detailsModel.selectedBuilding?.buildingSpec.type ==
-            BuildingType.factory) {
+            enums.BuildingType.factory) {
           return FactoryView();
         }
         if (detailsModel.selectedBuilding?.buildingSpec.type ==
-            BuildingType.lab) {
+            enums.BuildingType.lab) {
           return LabView();
         }
       }
@@ -223,9 +226,9 @@ class StoreView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Game.Store>(builder: (context, storeModel, child) {
+    return Consumer<Store>(builder: (context, storeModel, child) {
       List<Widget> storeItems = [];
-      for (Game.BuildingSpec aSpec in storeModel.purchaseLevel.keys) {
+      for (enums.BuildingSpec aSpec in storeModel.purchaseLevel.keys) {
         if (storeModel.purchaseLevel[aSpec]! > 0) {
           storeItems.add(StoreItem(aSpec));
         }
@@ -237,7 +240,7 @@ class StoreView extends StatelessWidget {
 }
 
 class StoreItem extends StatefulWidget {
-  Game.BuildingSpec _buildingSpec;
+  enums.BuildingSpec _buildingSpec;
 
   StoreItem(this._buildingSpec, {super.key});
 
@@ -246,7 +249,7 @@ class StoreItem extends StatefulWidget {
 }
 
 class _StoreItemState extends State<StoreItem> {
-  Game.BuildingSpec _buildingSpec;
+  enums.BuildingSpec _buildingSpec;
 
   _StoreItemState(this._buildingSpec);
 
@@ -322,7 +325,7 @@ class MineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Game.DetailsModel>(builder: (context, detailsModel, child) {
+    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
       String imageURL =
           '../assets/images/${detailsModel.selectedBuilding?.imageName}';
 
@@ -398,7 +401,7 @@ class FactoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Game.DetailsModel>(builder: (context, detailsModel, child) {
+    return Consumer<DetailsModel>(builder: (context, detailsModel, child) {
       String imageURL =
           '../assets/images/${detailsModel.selectedBuilding?.imageName}';
 
@@ -445,20 +448,21 @@ class FactoryView extends StatelessWidget {
                           children: [
                             for (var aFacCost in detailsModel.selectedBuilding!
                                 .buildingSpec.recipe.cost.keys)
-                              Stack(
-                                children: [
-                                  Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 20, right: 20),
-
-                                      // height: 50,
-                                      // width: 50,
-                                      child: Image.asset(
-                                          "../assets/images/${aFacCost.toString().split('.').last}.png")),
-                                  HighlightedText(detailsModel.selectedBuilding!
-                                      .buildingSpec.recipe.cost[aFacCost]
-                                      .toString())
-                                ],
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 20, right: 20),
+                                child: Stack(
+                                  children: [
+                                    Image.asset(
+                                        "../assets/images/${aFacCost.toString().split('.').last}.png"),
+                                    HighlightedText(detailsModel
+                                        .selectedBuilding!
+                                        .buildingSpec
+                                        .recipe
+                                        .cost[aFacCost]
+                                        .toString())
+                                  ],
+                                ),
                               )
                           ],
                         ),
@@ -487,13 +491,21 @@ class FactoryView extends StatelessWidget {
                                 .products
                                 .keys)
                               Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 20, right: 20),
-
-                                  // height: 50,
-                                  // width: 50,
-                                  child: Image.asset(
-                                      "../assets/images/${aFacProduct.toString().split('.').last}.png"))
+                                padding:
+                                    const EdgeInsets.only(left: 20, right: 20),
+                                child: Stack(
+                                  children: [
+                                    Image.asset(
+                                        "../assets/images/${aFacProduct.toString().split('.').last}.png"),
+                                    HighlightedText(detailsModel
+                                        .selectedBuilding!
+                                        .buildingSpec
+                                        .recipe
+                                        .products[aFacProduct]
+                                        .toString())
+                                  ],
+                                ),
+                              )
                           ],
                         ),
                       ),
@@ -586,10 +598,11 @@ class _LabViewState extends State<LabView> {
           child: ResearchView(),
         ),
         Container(
-          color: Colors.blue,
-          alignment: Alignment.center,
-          child: const Text('Page 3'),
-        ),
+            color: Colors.blue,
+            alignment: Alignment.center,
+            child: UpgradesView()
+            // child: const Text('Page 3'),
+            ),
       ][currentPageIndex],
     );
   }
@@ -600,10 +613,12 @@ class ResearchView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Game.Store>(builder: (context, storeModel, child) {
+    return Consumer<Store>(builder: (context, storeModel, child) {
       List<Widget> researchItems = [];
-      for (Game.BuildingSpec aSpec in storeModel.purchaseLevel.keys) {
-        researchItems.add(ResearchItem(aSpec));
+      for (enums.BuildingSpec aSpec in storeModel.purchaseLevel.keys) {
+        if (storeModel.purchaseLevel[aSpec]! > 0) {
+          researchItems.add(ResearchItem(aSpec));
+        }
       }
 
       return ListView(
@@ -613,7 +628,7 @@ class ResearchView extends StatelessWidget {
 }
 
 class ResearchItem extends StatefulWidget {
-  Game.BuildingSpec _buildingSpec;
+  enums.BuildingSpec _buildingSpec;
 
   ResearchItem(this._buildingSpec, {super.key});
 
@@ -622,7 +637,7 @@ class ResearchItem extends StatefulWidget {
 }
 
 class _ResearchItemState extends State<ResearchItem> {
-  Game.BuildingSpec _buildingSpec;
+  enums.BuildingSpec _buildingSpec;
 
   _ResearchItemState(this._buildingSpec);
 
@@ -630,7 +645,7 @@ class _ResearchItemState extends State<ResearchItem> {
   Widget build(BuildContext context) {
     // ${material.toString().split('.').last
     print(widget._buildingSpec.toString().split('.').last);
-    Map<Game.Material, double> costs = storeModel.getCostOfUpgrade(
+    Map<enums.Material, double> costs = storeModel.getCostOfUpgrade(
         _buildingSpec, storeModel.purchaseLevel[_buildingSpec] ?? 1);
     String overlayIcon = (storeModel.purchaseLevel[_buildingSpec] ?? 0) == 0
         ? "unlock.png"
@@ -710,6 +725,107 @@ class _ResearchItemState extends State<ResearchItem> {
   }
 }
 
+class UpgradesView extends StatelessWidget {
+  const UpgradesView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<Store>(builder: (context, storeModel, child) {
+      List<Widget> upgradeItems = [];
+      for (enums.TechUpgrade anUpgrade in enums.TechUpgrade.values) {
+        if (!storeModel.boughtUpgrades.contains(anUpgrade)) {
+          //check prerequisits
+          bool addable = true;
+          for (enums.TechUpgrade aPrerequisites in anUpgrade.prerequisites) {
+            if (!storeModel.boughtUpgrades.contains(aPrerequisites)) {
+              addable = false;
+            }
+          }
+          if (addable) {
+            upgradeItems.add(UpgradeItemStateless(anUpgrade));
+          }
+        }
+      }
+
+      return ListView(scrollDirection: Axis.horizontal, children: upgradeItems);
+    });
+  }
+}
+
+class UpgradeItemStateless extends StatelessWidget {
+  enums.TechUpgrade upgradeSpec;
+
+  UpgradeItemStateless(this.upgradeSpec, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // ${material.toString().split('.').last
+    // print(widget.upgradeSpec.toString().split('.').last);
+    Map<enums.Material, double> costs = upgradeSpec.cost;
+
+    return GestureDetector(
+        onTap: () {
+          storeModel.handleTechUpgrade(upgradeSpec);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: SizedBox(
+            width: 100,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Center(
+                      child: Text(utils.prettyTechUpgradesNames(upgradeSpec),
+                          // utils.prettyBuildingSpecNames(widget._buildingSpec),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.displaySmall),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Stack(children: [
+                    SizedBox(
+                        height: 80,
+                        width: 80,
+                        child: Image.asset(
+                            "../assets/images/${upgradeSpec.toString().split('.').last}.png")),
+                  ]),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    for (var aCost in costs.keys)
+                      Row(
+                        children: [
+                          Padding(
+                              padding: const EdgeInsets.only(left: 5),
+                              child: SizedBox(height: 30, width: 30, child: Image.asset(
+                                  //value: _buildingSpec.cost[aCost].toString().split('.').last
+                                  "../assets/images/${aCost.toString().split('.').last}.png"))),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: Text(
+                                (costs[aCost] ?? 0).toString().split('.').last,
+                                style: Theme.of(context).textTheme.bodySmall),
+                          )
+                        ],
+                      )
+                  ],
+                )
+                // Placeholder()
+              ],
+            ),
+          ),
+        ));
+  }
+}
+
 class HighlightedText extends StatelessWidget {
   String textToShow = "";
   HighlightedText(this.textToShow, {super.key});
@@ -743,7 +859,56 @@ class HighlightedText extends StatelessWidget {
     );
   }
 }
-//todo add numbers to factory render 
-//todo update the details view when a merge happens to show the new rate 
-//todo make a warning when construction of building through research cost will exceed storage 
-//todo progress bar ends a little too early 
+
+class DetailsModel extends ChangeNotifier {
+  Building? selectedBuilding;
+
+  DetailsModel() {
+    // selectedBuilding = game.factories[0];
+    // selectedBuilding = Mine(Game.Recipe.ironOre, Vector2(1, 1));
+  }
+
+  updateBuilding(newBuilding) {
+    selectedBuilding = newBuilding;
+    print("showing new building in details view");
+    print(newBuilding);
+    notifyListeners();
+  }
+
+  pauseClick() {
+    if (selectedBuilding?.paused ?? false) {
+      selectedBuilding?.paused = false;
+      print('playing building');
+    } else {
+      print('pausing building');
+      selectedBuilding?.paused = true;
+    }
+    notifyListeners();
+  }
+
+  refundClick() {
+    print('refund!');
+    inventoryModel.addItems(selectedBuilding!.buildingSpec.cost,
+        multiplier: pow(
+            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
+    inventoryModel.addItems(selectedBuilding!.buildingSpec.recipe.cost,
+        multiplier: pow(
+            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
+    selectedBuilding?.placedOnTile.buildingPlacedOn = null;
+    game.remove(selectedBuilding!);
+
+    if (selectedBuilding is Factory) {
+      game.factories.remove(selectedBuilding);
+    }
+    if (selectedBuilding is Mine) {
+      game.mines.remove(selectedBuilding);
+    }
+
+    // todo : alert if refund will hit storage limit
+  }
+}
+
+//todo add numbers to factory render
+//todo update the details view when a merge happens to show the new rate
+//todo make a warning when construction of building through research cost will exceed storage
+//todo progress bar ends a little too early
