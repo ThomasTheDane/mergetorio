@@ -114,7 +114,7 @@ class Building extends SpriteComponent
 
   destroy() {
     placedOnTile.buildingPlacedOn = null;
-    gameRef.remove(this);
+    gameRef.world.remove(this);
   }
 
   resizeAndLayout() {
@@ -172,11 +172,8 @@ class Building extends SpriteComponent
 
     levelText.text = level.toString();
     position.x = 100;
-    // levelText.x = 200;
-    // remove(levelText);
-    // remove(absorbedBuilding!.levelText);
 
-    gameRef.remove(absorbedBuilding!);
+    gameRef.world.remove(absorbedBuilding!);
   }
 }
 
@@ -201,7 +198,7 @@ class Mine extends Building {
     // imageName = '${recipe.products.toString()}Mine.png';
 
     imageName =
-        "${buildingSpec.recipe.products.toString().split('.').last.split(':').first}Mine.png";
+        "${buildingSpec.toString().split('.').last.split(':').first}.png";
     sprite = await Sprite.load(imageName);
     // sprite = await Sprite.load('ironOreMine.png');
   }
@@ -251,6 +248,7 @@ class Factory extends Building {
 
   @override
   Future<void> onLoad() async {
+    print("factory onload function");
     await super.onLoad();
 
     progressBarBackground = RectangleComponent.fromRect(
@@ -320,7 +318,6 @@ class Factory extends Building {
   }
 
   productionIncrement(dt) {
-    // print(timeCrafting);
     if (crafting) {
       if (!paused) {
         timeCrafting += dt * level;
@@ -337,8 +334,24 @@ class Factory extends Building {
       //done crafting
       //check if inventory can accept products
       if (gameRef.inventory.checkIfCanAdd(buildingSpec.recipe.products)) {
+        //if can add, then add items
         gameRef.inventory.addItems(buildingSpec.recipe.products);
-        timeCrafting = 0;
+
+        //set time crafting to the production increment if we can start craft
+        if (gameRef.inventory.checkIfCanSubtract(buildingSpec.recipe.cost)) {
+          //start crafting
+          gameRef.inventory.subtractItems(buildingSpec.recipe.cost);
+          crafting = true;
+          timeCrafting = timeCrafting - buildingSpec.recipe.duration;
+          //if time crafting > recipe our granularity is too low
+          if (timeCrafting >= buildingSpec.recipe.duration) {
+            throw FormatException(
+                "Crafting time > recipe after craft, internal too coarse ");
+          }
+        } else {
+          timeCrafting = 0;
+        }
+
         crafting = false;
       }
     }
@@ -349,6 +362,7 @@ class Factory extends Building {
   @override
   mergeBuilding(absorbedBuilding) {
     print('fac merge');
+    //todo - if some of the buildings are crafting yet then they shouldn't add their value to the production or infer the costs of production onward
     //sum up progress on buildings
     if (absorbedBuilding is Factory) {
       timeCrafting = timeCrafting + absorbedBuilding.timeCrafting;

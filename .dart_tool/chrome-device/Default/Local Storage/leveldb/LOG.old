@@ -1,6 +1,13 @@
-2023/10/30-07:59:10.288 3c03 Reusing MANIFEST /private/var/folders/56/l0dg2w2d6tj2rkvy8_cdr32c009q7c/T/flutter_tools.EmX2kh/flutter_tools_chrome_device.dxfwpa/Default/Local Storage/leveldb/MANIFEST-000001
-2023/10/30-07:59:10.289 3c03 Recovering log #13
-2023/10/30-07:59:10.290 3c03 Reusing old log /private/var/folders/56/l0dg2w2d6tj2rkvy8_cdr32c009q7c/T/flutter_tools.EmX2kh/flutter_tools_chrome_device.dxfwpa/Default/Local Storage/leveldb/000013.log 
-2023/10/30-07:59:10.290 3c03 Delete type=0 #4
-2023/10/30-07:59:10.290 3c03 Delete type=0 #10
-2023/10/30-07:59:10.290 3c03 Delete type=0 #8
+2024/01/21-10:41:37.767 2d03 Reusing MANIFEST /private/var/folders/56/l0dg2w2d6tj2rkvy8_cdr32c009q7c/T/flutter_tools.R2FxbE/flutter_tools_chrome_device.b0SBAU/Default/Local Storage/leveldb/MANIFEST-000001
+2024/01/21-10:41:37.768 2d03 Recovering log #27
+2024/01/21-10:41:37.768 2d03 Reusing old log /private/var/folders/56/l0dg2w2d6tj2rkvy8_cdr32c009q7c/T/flutter_tools.R2FxbE/flutter_tools_chrome_device.b0SBAU/Default/Local Storage/leveldb/000027.log 
+2024/01/21-10:41:37.769 2d03 Delete type=0 #13
+2024/01/21-10:41:37.769 2d03 Delete type=0 #4
+2024/01/21-10:41:37.769 2d03 Delete type=0 #10
+2024/01/21-10:41:37.769 2d03 Delete type=0 #16
+2024/01/21-10:41:37.769 2d03 Delete type=2 #14
+2024/01/21-10:41:37.769 2d03 Delete type=2 #7
+2024/01/21-10:41:37.769 2d03 Delete type=2 #11
+2024/01/21-10:41:37.769 2d03 Delete type=0 #8
+2024/01/21-10:41:37.769 2d03 Delete type=0 #20
+2024/01/21-10:41:37.769 2d03 Delete type=0 #23

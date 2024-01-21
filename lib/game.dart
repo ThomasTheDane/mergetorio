@@ -30,53 +30,45 @@ class MergetorioGame extends FlameGame {
   String gameSaveId = "1";
   int lastSaveTime = 0;
 
+  final world = World();
+  late final CameraComponent cameraComponent;
+
   MergetorioGame(this.inventory, this.detailsModel, this.store) {
     gameGrid = GameGrid();
     gameStartTime = DateTime.now().millisecondsSinceEpoch;
     lastSaveTime = DateTime.now().millisecondsSinceEpoch;
     commandCenter = CommandCenter(BuildingSpec.command, Vector2(0, 0));
-    add(commandCenter);
 
     detailsModel.updateBuilding(commandCenter);
   }
 
   @override
   Future<void> onLoad() async {
-    final world = World();
-    add(world);
-    // add(aTile);
+    cameraComponent = CameraComponent(world: world);
+    addAll([cameraComponent, world]);
 
-    final camera = CameraComponent(world: world)
-      ..viewfinder.visibleGameSize = Vector2(1000, 1000)
-      ..viewfinder.anchor = Anchor.topLeft;
-    add(camera);
+    cameraComponent.viewfinder.anchor = Anchor.topLeft;
 
-    add(gameGrid);
-
-    // registerAdapters();
+    world.add(gameGrid);
+    world.add(commandCenter);
 
     setupTesting();
-    // loadGame("1");
   }
 
-  // void test() {
-  // print(inventory.materials);
-  // inventory.justNotify();
-  // }
   bool didLoad = false;
   @override
   void update(double dt) {
     ///autoload
     if (!didLoad) {
-      didLoad = true;
+      // didLoad = true;
       // loadGame(gameSaveId);
     }
 
     int currentTime = DateTime.now().millisecondsSinceEpoch;
     if (currentTime - lastSaveTime > Duration(seconds: 5).inMilliseconds) {
-      //need to auto save
-      saveCurrentGame();
-      lastSaveTime = currentTime;
+      //need to autosave
+      // saveCurrentGame();
+      // lastSaveTime = currentTime;
     }
 
     double coarseness = 0.05;
@@ -105,15 +97,15 @@ class MergetorioGame extends FlameGame {
 
   setupTesting() {
     // var mine = Mine(BuildingSpec.ironOreMine, Vector2(1, 1));
-    // add(mine);
+    // world.add(mine);
     // var mine2 = Mine(BuildingSpec.ironOreMine, Vector2(1, 2));
-    // add(mine2);
-    var lab1 = Factory(BuildingSpec.science1Lab, Vector2(1, 0));
-    add(lab1);
+    // world.add(mine2);
+    // var lab1 = Factory(BuildingSpec.science1Lab, Vector2(1, 0));
+    // world.add(lab1);
     // var fac = Factory(BuildingSpec.ironOreMine, Vector2(3, 3));
-    // add(fac);
+    // world.add(fac);
     // var fac2 = Factory(BuildingSpec.ironOreMine, Vector2(4, 4));
-    // add(fac2);
+    // world.add(fac2);
 
     // mines.addAll([mine, mine2]);
     // factories.add(lab1);
@@ -151,6 +143,28 @@ class MergetorioGame extends FlameGame {
     });
     savingJson['"buildings"'] = buildingsJson;
 
+    //tech tree
+    savingJson['"boughtUpgrades"'] = [];
+    for (var element in store.boughtUpgrades) {
+      savingJson['"boughtUpgrades"'].add('"${element.toString()}"');
+    }
+
+    savingJson['"purchaseLevels"'] = {};
+    store.purchaseLevel.forEach((key, value) {
+      savingJson['"purchaseLevels"']['"${key.toString().split('.').last}"'] =
+          '"$value"';
+    });
+
+    savingJson['"timeAtSaving"'] = DateTime.now().millisecondsSinceEpoch;
+    // store.boughtUpgrades.forEach((key, value) {
+    //   savingJson['"boughtUpgrades"']['"${key.toString().split('.').last}"'] =
+    //       '"$value"';
+    // });
+
+    //   materials.forEach((key, value) {
+    // returnedJson['"materials"']['"${key.toString().split('.').last}"'] =
+    //     '"$value"';
+
     //actually save
     print("========= saving Game ==========");
     // print(savingJson);
@@ -177,7 +191,7 @@ class MergetorioGame extends FlameGame {
     //update inventory
     var materialsJson = storedGame["inventory"]["materials"];
     for (final aMaterial in materialsJson.keys) {
-      print("A materail $aMaterial set to ${materialsJson[aMaterial]}");
+      // print("A materail $aMaterial set to ${materialsJson[aMaterial]}");
       inventory.materials[
               Material.values.byName(aMaterial.toString().split('.').last)] =
           double.parse(materialsJson[aMaterial]);
@@ -186,13 +200,29 @@ class MergetorioGame extends FlameGame {
     //destroy and remake gameGrid
     gameGrid.destroy();
     gameGrid = GameGrid.fromJson(storedGame["gameGrid"]);
-    game.add(gameGrid);
+    world.add(gameGrid);
+
+    //tech tree
+    for (final anUpgrade in storedGame["boughtUpgrades"]) {
+      TechUpgrade storedUpgrade =
+          TechUpgrade.values.byName(anUpgrade.split(".").last);
+      if (!store.boughtUpgrades.contains(storedUpgrade)) {
+        // store.handleTechUpgrade(storedUpgrade);
+        store.boughtUpgrades.add(storedUpgrade);
+      }
+    }
+    // for (final purchaseLevel in storedGame["purchaseLevels"]) {
+    for (final purchaseLevel in storedGame["purchaseLevels"].keys) {
+      store.purchaseLevel[BuildingSpec.values
+              .byName(purchaseLevel.toString().split(".").last)] =
+          int.parse(storedGame["purchaseLevels"][purchaseLevel]);
+    }
 
     //update buildings
     commandCenter.destroy();
     commandCenter =
         CommandCenter.fromJson(storedGame["buildings"]["commandCenter"]);
-    add(commandCenter);
+    world.add(commandCenter);
 
     ////wipe all buildings #killAllRobots
     destroyAllBuildings();
@@ -202,16 +232,32 @@ class MergetorioGame extends FlameGame {
       // print("placing mine: $aMineJson");
       var mine = Mine.fromJson(aMineJson);
       mines.add(mine);
-      add(mine);
+      world.add(mine);
     }
 
     ////factories
     for (final aFactoryJson in storedGame["buildings"]["factories"]) {
-      print("placing factory: $aFactoryJson");
+      // print("placing factory: $aFactoryJson");
       var factory = Factory.fromJson(aFactoryJson);
       factories.add(factory);
-      add(factory);
+      // world.add(factory);
     }
+    await addAll(factories);
+
+    print("finished adding factories");
+
+    //run through the time
+    if (storedGame["timeAtSaving"] != null) {
+      double timeSinceSave = DateTime.now().millisecondsSinceEpoch -
+          storedGame["timeAtSaving"] as double;
+
+      print(
+          "Elapsed time since save: ${Duration(milliseconds: timeSinceSave as int).inSeconds.toString()} seconds which is ${Duration(milliseconds: timeSinceSave as int).inMinutes.toString()} minutes");
+      update(timeSinceSave / 1000);
+    }
+
+    //update UI
+    store.notifyListeners();
   }
 
   Future<String> getGameState(gameId) async =>
@@ -223,16 +269,20 @@ class MergetorioGame extends FlameGame {
 
   debugClick() {
     print("game debug click 1");
-    gameGrid.growGridDown();
-    gameGrid.growGridRight();
-    gameGrid.resizeAndLayout();
     // gameGrid
-    // saveCurrentGame();
+    saveCurrentGame();
   }
 
   debugClick2() {
     print("game debug click 2");
     loadGame("1");
+  }
+
+  debugClick3() {
+    print("game debug click 3");
+    print("jumping forward a minute");
+    update(60);
+    // cameraComponent.moveBy(Vector2(10, 10));
   }
 
   destroyAllBuildings() {

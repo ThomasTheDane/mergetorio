@@ -40,10 +40,11 @@ class Inventory extends ChangeNotifier {
 
   testingSetup() {
     materials[Material.ironOre] = 100;
-    // materials[Material.ironPlate] = 100;
+    materials[Material.ironPlate] = 100;
     materials[Material.ironGear] = 100;
-    // materials[Material.coal] = 100;
-    materials[Material.science1] = 100;
+    materials[Material.coal] = 100;
+    materials[Material.science1] = 1000;
+    materials[Material.copperOre] = 1000;
   }
 
   addItems(Map<Material, double> additions, {multiplier = 1}) {

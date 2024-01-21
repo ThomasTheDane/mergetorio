@@ -19,7 +19,6 @@ class Store extends ChangeNotifier {
   List<BuildingSpec> availableBuildings = [];
   List<TechUpgrade> boughtUpgrades = [];
 
-  // @HiveField(1)
   late MergetorioGame gameRef;
 
   Map<BuildingSpec, int> purchaseLevel = {};
@@ -65,20 +64,20 @@ class Store extends ChangeNotifier {
         var newMine = Mine(
             toBuySpec, gameRef.gameGrid.getRandomUnoccupiedTile().gridPoint);
         newMine.level = purchaseLevel[toBuySpec] ?? 1;
-        gameRef.add(newMine);
+        gameRef.world.add(newMine);
         gameRef.mines.add(newMine);
       }
       if (toBuySpec.type == BuildingType.factory) {
         var newFac = Factory(
             toBuySpec, gameRef.gameGrid.getRandomUnoccupiedTile().gridPoint);
         newFac.level = purchaseLevel[toBuySpec] ?? 1;
-        gameRef.add(newFac);
+        gameRef.world.add(newFac);
         gameRef.factories.add(newFac);
       }
       if (toBuySpec.type == BuildingType.lab) {
         var newLab = Factory(
             toBuySpec, gameRef.gameGrid.getRandomUnoccupiedTile().gridPoint);
-        gameRef.add(newLab);
+        gameRef.world.add(newLab);
         newLab.level = purchaseLevel[toBuySpec] ?? 1;
         gameRef.factories.add(newLab);
       }
@@ -123,12 +122,6 @@ class Store extends ChangeNotifier {
       print("research done after special");
       return;
     }
-
-    //building upgrades
-    // if (!BuildingSpec.values.contains(upgrade.toString().split(".").last)) {
-    //   print("building spec not found");
-    //   return;
-    // }
 
     BuildingSpec toUnlockSpec =
         BuildingSpec.values.byName(upgrade.toString().split(".").last);

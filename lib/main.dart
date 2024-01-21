@@ -184,17 +184,22 @@ class DetailView extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text("Construction Center",
-                      style: Theme.of(context).textTheme.displayMedium),
+                      style: Theme.of(context).textTheme.displaySmall),
                 ),
                 IconButton(
                   icon: const Icon(Icons.bug_report),
-                  tooltip: 'Debug Test',
+                  tooltip: 'Debug Test 1',
                   onPressed: game.debugClick,
                 ),
                 IconButton(
                   icon: const Icon(Icons.bungalow_outlined),
                   tooltip: 'Debug Test',
                   onPressed: game.debugClick2,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bug_report),
+                  tooltip: 'Debug Test 3',
+                  onPressed: game.debugClick3,
                 )
               ],
             ),
@@ -888,14 +893,18 @@ class DetailsModel extends ChangeNotifier {
 
   refundClick() {
     print('refund!');
+
     inventoryModel.addItems(selectedBuilding!.buildingSpec.cost,
-        multiplier: pow(
-            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
-    inventoryModel.addItems(selectedBuilding!.buildingSpec.recipe.cost,
-        multiplier: pow(
-            2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
+        multiplier: pow(2, selectedBuilding!.level - 1));
+
+    //todo: refund recipe if it was being crafted
+    // inventoryModel.addItems(selectedBuilding!.buildingSpec.recipe.cost,
+    //     multiplier: pow(
+    //         2, game.store.purchaseLevel[selectedBuilding!.buildingSpec]! - 1));
+
     selectedBuilding?.placedOnTile.buildingPlacedOn = null;
-    game.remove(selectedBuilding!);
+
+    game.world.remove(selectedBuilding!);
 
     if (selectedBuilding is Factory) {
       game.factories.remove(selectedBuilding);
@@ -908,7 +917,7 @@ class DetailsModel extends ChangeNotifier {
   }
 }
 
-//todo add numbers to factory render
+//todo add total produced numbers to factory render
 //todo update the details view when a merge happens to show the new rate
 //todo make a warning when construction of building through research cost will exceed storage
 //todo progress bar ends a little too early

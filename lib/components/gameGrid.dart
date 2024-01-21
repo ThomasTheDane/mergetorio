@@ -2,6 +2,7 @@ import 'dart:math';
 
 // import 'package:flutter/material.dart';
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 
 import 'tiles.dart';
 import '../game.dart';
@@ -15,9 +16,9 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
 
   List<List<String>> tileMap1 = [
     ["d", "d", "d", "d"],
-    ["d", "d", "i", "d"],
-    ["d", "i", "d", "i"],
-    ["d", "d", "d", "c"]
+    ["d", "d", "i", "i"],
+    ["d", "i", "d", "c"],
+    ["d", "d", "d", "d"]
   ]; //todo implement pulling from this and storing it in save
 
   List<List<Tile>> tiles = [[]];
@@ -32,12 +33,6 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
     returnJson['"gridHeight"'] = '"$gridHeight"';
     returnJson['"gridPixelSize"'] = '"$gridPixelSize"';
     returnJson['"tilePixelSize"'] = '"$tilePixelSize"';
-
-    // returnJson['"tiles"'] = List.generate(
-    //     gridHeight,
-    //     (y) => List.generate(gridWidth, (x) {
-    //           return tiles[y][x].toJson();
-    //         }));
 
     return returnJson;
   }
@@ -82,7 +77,7 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
         (y) => List.generate(gridWidth, (x) {
               Tile aTile =
                   Tile(Material.dirt, Vector2(x.toDouble(), y.toDouble()));
-              // gameRef.add(aTile);
+              // gameRef.world.add(aTile);
               return aTile;
             }, growable: true),
         growable: true);
@@ -94,7 +89,7 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
         (y) => List.generate(gridWidth, (x) {
               Tile aTile = getTileFromMap(tileMap1, x, y);
 
-              // gameRef.add(aTile);
+              // gameRef.world.add(aTile);
 
               return aTile;
             }, growable: true),
@@ -104,7 +99,7 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
   addTilesToGame() {
     for (List<Tile> tileRow in tiles) {
       for (Tile aTile in tileRow) {
-        gameRef.add(aTile);
+        gameRef.world.add(aTile);
       }
     }
   }
@@ -116,7 +111,7 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
     for (List<Tile> tileRow in tiles) {
       Tile newTile = getTileFromMap(tileMap1, gridWidth - 1, y as int);
       tileRow.add(newTile);
-      gameRef.add(newTile);
+      gameRef.world.add(newTile);
       y += 1;
     }
   }
@@ -126,16 +121,10 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
     tilePixelSize = min(gridPixelSize / gridWidth, gridPixelSize / gridHeight);
     List<Tile> newTileRow = List.generate(gridWidth, (x) {
       Tile aTile = getTileFromMap(tileMap1, x, gridHeight - 1);
-      gameRef.add(aTile);
+      gameRef.world.add(aTile);
       return aTile;
     }, growable: true);
     tiles.add(newTileRow);
-    // for (List<Tile> tileRow in tiles) {
-    //   Tile newTile = Tile(Material.dirt, Vector2(gridWidth - 1 as double, y));
-    //   tileRow.add(newTile);
-    //   gameRef.add(newTile);
-    //   y += 1;
-    // }
   }
 
   resizeAndLayout() {
@@ -167,7 +156,7 @@ class GameGrid extends Component with HasGameRef<MergetorioGame> {
   destroy() {
     for (List<Tile> tileRow in tiles) {
       for (Tile aTile in tileRow) {
-        gameRef.remove(aTile);
+        gameRef.world.remove(aTile);
       }
     }
   }

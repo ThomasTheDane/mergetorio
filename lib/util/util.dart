@@ -19,7 +19,10 @@ prettyFormat(double? n) {
   if (n == 0) {
     return "0";
   }
-  if (n > 0 && n < .000000001) {
+  if (n > 0 && n < .00000001) {
+    return "0";
+  }
+  if (n < 0 && n > -0.00000001) {
     return "0";
   }
   if (n < 0 && n > -1) {
@@ -40,7 +43,7 @@ prettyFormat(double? n) {
 
 String prettyNames(Material aMaterial) {
   if (aMaterial == Material.science1) {
-    return "Science 1";
+    return "Red Science";
   }
   if (aMaterial == Material.science2) {
     return "Green Science";
